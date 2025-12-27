@@ -6,6 +6,7 @@ import RegistrationModal from '@/components/RegistrationModal';
 import LoginModal from '@/components/LoginModal';
 import ProfileModal from '@/components/ProfileModal';
 import ShopModal from '@/components/ShopModal';
+import AdminModal from '@/components/AdminModal';
 import Navigation from '@/components/sections/Navigation';
 import HeroSection from '@/components/sections/HeroSection';
 import AboutSection from '@/components/sections/AboutSection';
@@ -26,6 +27,7 @@ const Index = () => {
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('authToken'));
   const [showProfile, setShowProfile] = useState(false);
   const [showShop, setShowShop] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [statistics, setStatistics] = useState<{ total_players: number; online_players: number; class_stats: ClassStat[] } | null>(null);
   const [topPlayers, setTopPlayers] = useState<Player[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -300,6 +302,12 @@ const Index = () => {
     }
   };
 
+  const refreshAllData = () => {
+    fetchStatistics();
+    fetchNews();
+    fetchRaidBosses();
+  };
+
   const resetRegistration = () => {
     setShowRegister(false);
     setRegistrationStep(1);
@@ -373,6 +381,7 @@ const Index = () => {
         onLoginClick={() => setShowLogin(true)}
         onRegisterClick={() => setShowRegister(true)}
         onLogoutClick={handleLogout}
+        onAdminClick={() => setShowAdmin(true)}
       />
 
       <HeroSection
@@ -456,6 +465,14 @@ const Index = () => {
         playerCoins={currentPlayer?.coins || 0}
         onClose={() => setShowShop(false)}
         onPurchase={handlePurchase}
+      />
+
+      <AdminModal
+        isOpen={showAdmin}
+        onClose={() => setShowAdmin(false)}
+        news={news}
+        raidBosses={raidBosses}
+        onRefresh={refreshAllData}
       />
     </div>
   );

@@ -10,6 +10,7 @@ interface NavigationProps {
   onLoginClick: () => void;
   onRegisterClick: () => void;
   onLogoutClick: () => void;
+  onAdminClick: () => void;
 }
 
 const Navigation = ({
@@ -19,7 +20,8 @@ const Navigation = ({
   onProfileClick,
   onLoginClick,
   onRegisterClick,
-  onLogoutClick
+  onLogoutClick,
+  onAdminClick
 }: NavigationProps) => {
   return (
     <nav className="fixed top-0 w-full z-50 bg-card/95 backdrop-blur-sm border-b border-border">
@@ -52,6 +54,12 @@ const Navigation = ({
         <div className="flex gap-2">
           {currentPlayer ? (
             <>
+              {currentPlayer.character_class === 'админ' && (
+                <Button size="sm" variant="default" onClick={onAdminClick}>
+                  <Icon name="Settings" size={16} className="mr-2" />
+                  Админ
+                </Button>
+              )}
               <Button size="sm" variant="outline" onClick={onProfileClick}>
                 <Icon name="User" size={16} className="mr-2" />
                 {currentPlayer.username}
