@@ -28,16 +28,17 @@ const Index = () => {
   const [statistics, setStatistics] = useState<{ total_players: number; online_players: number; class_stats: ClassStat[] } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [raidBosses, setRaidBosses] = useState<RaidBoss[]>([
-    { id: '1', name: 'Баюм', level: 75, respawnTime: '5 дней', isAlive: true, location: 'Лес зеркал', nextRespawn: '29.12.2024 18:00' },
-    { id: '2', name: 'Антарас', level: 79, respawnTime: '7 дней', isAlive: false, location: 'Логово Антараса', nextRespawn: '30.12.2024 20:00' },
-    { id: '3', name: 'Валакас', level: 85, respawnTime: '10 дней', isAlive: true, location: 'Пещера Валакаса', nextRespawn: '02.01.2025 21:00' },
-    { id: '4', name: 'Королева муравьев', level: 40, respawnTime: '24 часа', isAlive: true, location: 'Муравейник', nextRespawn: '28.12.2024 14:00' },
-    { id: '5', name: 'Орфен', level: 50, respawnTime: '48 часов', isAlive: false, location: 'Храм Аркан', nextRespawn: '29.12.2024 10:00' },
-    { id: '6', name: 'Закен', level: 60, respawnTime: '72 часа', isAlive: true, location: 'Закенский алтарь', nextRespawn: '31.12.2024 22:00' },
-    { id: '7', name: 'Кор', level: 70, respawnTime: '4 дня', isAlive: false, location: 'Логово Кора', nextRespawn: '28.12.2024 16:00' },
-    { id: '8', name: 'Квин Аркания', level: 80, respawnTime: '6 дней', isAlive: true, location: 'Замок Аркании', nextRespawn: '01.01.2025 19:00' },
-    { id: '9', name: 'Фринтеза', level: 85, respawnTime: '8 дней', isAlive: false, location: 'Храм Фринтезы', nextRespawn: '03.01.2025 15:00' },
+    { id: '1', name: 'Баюм', level: 75, respawnTime: '5 дней', isAlive: true, location: 'Лес зеркал', nextRespawn: '2024-12-29T18:00:00' },
+    { id: '2', name: 'Антарас', level: 79, respawnTime: '7 дней', isAlive: false, location: 'Логово Антараса', nextRespawn: '2024-12-30T20:00:00' },
+    { id: '3', name: 'Валакас', level: 85, respawnTime: '10 дней', isAlive: true, location: 'Пещера Валакаса', nextRespawn: '2025-01-02T21:00:00' },
+    { id: '4', name: 'Королева муравьев', level: 40, respawnTime: '24 часа', isAlive: true, location: 'Муравейник', nextRespawn: '2024-12-28T14:00:00' },
+    { id: '5', name: 'Орфен', level: 50, respawnTime: '48 часов', isAlive: false, location: 'Храм Аркан', nextRespawn: '2024-12-29T10:00:00' },
+    { id: '6', name: 'Закен', level: 60, respawnTime: '72 часа', isAlive: true, location: 'Закенский алтарь', nextRespawn: '2024-12-31T22:00:00' },
+    { id: '7', name: 'Кор', level: 70, respawnTime: '4 дня', isAlive: false, location: 'Логово Кора', nextRespawn: '2024-12-28T16:00:00' },
+    { id: '8', name: 'Квин Аркания', level: 80, respawnTime: '6 дней', isAlive: true, location: 'Замок Аркании', nextRespawn: '2025-01-01T19:00:00' },
+    { id: '9', name: 'Фринтеза', level: 85, respawnTime: '8 дней', isAlive: false, location: 'Храм Фринтезы', nextRespawn: '2025-01-03T15:00:00' },
   ]);
+  const [timeRemaining, setTimeRemaining] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   const API_URL = 'https://functions.poehali.dev/02f42820-5dff-4b5b-abaa-182b01ed3cd8';
@@ -265,6 +266,47 @@ const Index = () => {
     setFormData({ username: '', email: '', password: '', confirmPassword: '' });
     setIsRegistered(false);
   };
+
+  const calculateTimeRemaining = (targetDate: string): string => {
+    const now = new Date().getTime();
+    const target = new Date(targetDate).getTime();
+    const diff = target - now;
+
+    if (diff <= 0) {
+      return 'Респаун прошёл';
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    if (days > 0) {
+      return `${days}д ${hours}ч ${minutes}м`;
+    } else if (hours > 0) {
+      return `${hours}ч ${minutes}м ${seconds}с`;
+    } else if (minutes > 0) {
+      return `${minutes}м ${seconds}с`;
+    } else {
+      return `${seconds}с`;
+    }
+  };
+
+  useEffect(() => {
+    const updateTimers = () => {
+      const newTimeRemaining: Record<string, string> = {};
+      raidBosses.forEach(boss => {
+        if (boss.nextRespawn) {
+          newTimeRemaining[boss.id] = calculateTimeRemaining(boss.nextRespawn);
+        }
+      });
+      setTimeRemaining(newTimeRemaining);
+    };
+
+    updateTimers();
+    const interval = setInterval(updateTimers, 1000);
+    return () => clearInterval(interval);
+  }, [raidBosses]);
 
   useEffect(() => {
     fetchStatistics();
@@ -623,10 +665,27 @@ const Index = () => {
                       <span className="text-muted-foreground">Респаун: {boss.respawnTime}</span>
                     </div>
                     {boss.nextRespawn && (
-                      <div className="pt-2 border-t border-border">
+                      <div className="pt-2 border-t border-border space-y-2">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Следующий респаун:</span>
-                          <Badge variant="outline" className="text-xs">{boss.nextRespawn}</Badge>
+                          <span className="text-muted-foreground">Дата респауна:</span>
+                          <Badge variant="outline" className="text-xs">
+                            {new Date(boss.nextRespawn).toLocaleString('ru-RU', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Осталось:</span>
+                          <Badge 
+                            className={`text-xs font-mono ${boss.isAlive ? 'bg-blue-500' : 'bg-orange-500'}`}
+                          >
+                            <Icon name="Timer" size={12} className="mr-1" />
+                            {timeRemaining[boss.id] || 'Загрузка...'}
+                          </Badge>
                         </div>
                       </div>
                     )}
