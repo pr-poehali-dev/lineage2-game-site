@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
@@ -19,6 +19,9 @@ interface ShopModalProps {
 const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProps) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('shop');
+  const [loading, setLoading] = useState(true);
+  
+  const SHOP_API_URL = 'https://functions.poehali.dev/68a98b5c-1fcf-4e68-ae6a-7aba89aa363b';
   
   const [shopItems, setShopItems] = useState<ShopItem[]>([
     {
@@ -92,6 +95,33 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
     'Zap', 'Star', 'Crown', 'Gem', 'Award', 'Heart'
   ];
 
+  useEffect(() => {
+    if (showShop) {
+      loadShopItems();
+    }
+  }, [showShop]);
+
+  const loadShopItems = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(SHOP_API_URL);
+      if (response.ok) {
+        const data = await response.json();
+        setShopItems(data.items || []);
+      } else {
+        toast({
+          title: 'Ошибка загрузки',
+          description: 'Не удалось загрузить товары магазина',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load shop items:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleBuyCoins = (amount: number) => {
     toast({
       title: 'Пополнение баланса',
@@ -115,40 +145,99 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
     }
   };
 
-  const handleCreateItem = () => {
-    const newItem: ShopItem = {
-      id: Date.now().toString(),
-      ...formData
-    };
-    setShopItems([...shopItems, newItem]);
-    resetForm();
-    toast({
-      title: 'Товар создан!',
-      description: `${newItem.name} добавлен в магазин`
-    });
+  const handleCreateItem = async () => {
+    try {
+      const response = await fetch(SHOP_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        await loadShopItems();
+        resetForm();
+        toast({
+          title: 'Товар создан!',
+          description: `${formData.name} добавлен в магазин`
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: 'Ошибка создания',
+          description: error.error || 'Не удалось создать товар',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось создать товар',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const handleUpdateItem = () => {
+  const handleUpdateItem = async () => {
     if (!editingItem) return;
     
-    setShopItems(shopItems.map(item => 
-      item.id === editingItem.id 
-        ? { ...editingItem, ...formData }
-        : item
-    ));
-    resetForm();
-    toast({
-      title: 'Товар обновлен!',
-      description: `${formData.name} успешно изменен`
-    });
+    try {
+      const response = await fetch(`${SHOP_API_URL}/${editingItem.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        await loadShopItems();
+        resetForm();
+        toast({
+          title: 'Товар обновлен!',
+          description: `${formData.name} успешно изменен`
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: 'Ошибка обновления',
+          description: error.error || 'Не удалось обновить товар',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось обновить товар',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const handleDeleteItem = (id: string) => {
-    setShopItems(shopItems.filter(item => item.id !== id));
-    toast({
-      title: 'Товар удален',
-      description: 'Товар удален из магазина'
-    });
+  const handleDeleteItem = async (id: string) => {
+    try {
+      const response = await fetch(`${SHOP_API_URL}/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        await loadShopItems();
+        toast({
+          title: 'Товар удален',
+          description: 'Товар удален из магазина'
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: 'Ошибка удаления',
+          description: error.error || 'Не удалось удалить товар',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить товар',
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

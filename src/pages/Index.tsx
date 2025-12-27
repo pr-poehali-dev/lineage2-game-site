@@ -231,20 +231,48 @@ const Index = () => {
     toast({ title: 'Вы вышли', description: 'До новых встреч в мире Lineage II!' });
   };
 
-  const handlePurchase = (item: ShopItem) => {
-    if (currentPlayer && currentPlayer.coins && currentPlayer.coins >= item.price) {
-      setCurrentPlayer({
-        ...currentPlayer,
-        coins: currentPlayer.coins - item.price
-      });
+  const handlePurchase = async (item: ShopItem) => {
+    if (!currentPlayer) {
       toast({
-        title: 'Покупка успешна!',
-        description: `Вы приобрели: ${item.name}`
+        title: 'Войдите в аккаунт',
+        description: 'Для покупки необходимо авторизоваться',
+        variant: 'destructive'
       });
-    } else {
+      return;
+    }
+
+    try {
+      const response = await fetch('https://functions.poehali.dev/68a98b5c-1fcf-4e68-ae6a-7aba89aa363b/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          player_id: currentPlayer.id,
+          item_id: item.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setCurrentPlayer({
+          ...currentPlayer,
+          coins: data.new_balance
+        });
+        toast({
+          title: 'Покупка успешна!',
+          description: `Вы приобрели: ${data.item_name}`
+        });
+      } else {
+        toast({
+          title: 'Ошибка покупки',
+          description: data.error || 'Не удалось совершить покупку',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
       toast({
-        title: 'Недостаточно монет',
-        description: 'Пополните баланс для покупки',
+        title: 'Ошибка',
+        description: 'Проблема с соединением',
         variant: 'destructive'
       });
     }
