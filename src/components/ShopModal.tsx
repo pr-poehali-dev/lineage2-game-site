@@ -81,8 +81,11 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
     description: '',
     price: 0,
     icon: 'Sword',
-    type: 'weapon' as 'weapon' | 'armor' | 'potion' | 'boost'
+    type: 'weapon' as 'weapon' | 'armor' | 'potion' | 'boost',
+    imageUrl: ''
   });
+
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const iconOptions = [
     'Sword', 'Shield', 'Target', 'Wand2', 'Sparkles', 'Droplet', 
@@ -148,6 +151,41 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
     });
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Файл слишком большой',
+        description: 'Максимальный размер: 5 МБ',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData({...formData, imageUrl: reader.result as string});
+      setUploadingImage(false);
+      toast({
+        title: 'Изображение загружено!',
+        description: 'Изображение успешно добавлено к товару'
+      });
+    };
+    reader.onerror = () => {
+      setUploadingImage(false);
+      toast({
+        title: 'Ошибка загрузки',
+        description: 'Не удалось загрузить изображение',
+        variant: 'destructive'
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const startEdit = (item: ShopItem) => {
     setEditingItem(item);
     setFormData({
@@ -155,7 +193,8 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
       description: item.description,
       price: item.price,
       icon: item.icon,
-      type: item.type
+      type: item.type,
+      imageUrl: item.imageUrl || ''
     });
     setIsCreating(false);
     setActiveTab('editor');
@@ -174,7 +213,8 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
       description: '',
       price: 0,
       icon: 'Sword',
-      type: 'weapon'
+      type: 'weapon',
+      imageUrl: ''
     });
     setEditingItem(null);
     setIsCreating(false);
@@ -235,13 +275,24 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
 
             <div className="grid md:grid-cols-2 gap-4">
               {shopItems.map((item) => (
-                <Card key={item.id} className="card-glow hover-glow">
+                <Card key={item.id} className="card-glow hover-glow overflow-hidden">
+                  {item.imageUrl && (
+                    <div className="w-full h-48 overflow-hidden bg-gradient-to-b from-primary/10 to-transparent">
+                      <img 
+                        src={item.imageUrl} 
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                          <Icon name={item.icon as any} size={24} className="text-primary" />
-                        </div>
+                        {!item.imageUrl && (
+                          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                            <Icon name={item.icon as any} size={24} className="text-primary" />
+                          </div>
+                        )}
                         <div>
                           <CardTitle className="text-lg">{item.name}</CardTitle>
                           <Badge variant="outline" className="mt-1">
@@ -334,6 +385,42 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
                       />
                     </div>
 
+                    <div className="space-y-2">
+                      <Label htmlFor="image">Изображение товара</Label>
+                      <div className="flex gap-4 items-start">
+                        <div className="flex-1">
+                          <Input
+                            id="image"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            disabled={uploadingImage}
+                            className="cursor-pointer"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            JPG, PNG или GIF. Макс. 5 МБ
+                          </p>
+                        </div>
+                        {formData.imageUrl && (
+                          <div className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-primary/50">
+                            <img 
+                              src={formData.imageUrl} 
+                              alt="Preview"
+                              className="w-full h-full object-cover"
+                            />
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              className="absolute top-1 right-1 h-6 w-6"
+                              onClick={() => setFormData({...formData, imageUrl: ''})}
+                            >
+                              <Icon name="X" size={12} />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="type">Тип товара</Label>
@@ -351,7 +438,7 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="icon">Иконка</Label>
+                        <Label htmlFor="icon">Иконка (если нет изображения)</Label>
                         <Select value={formData.icon} onValueChange={(value) => setFormData({...formData, icon: value})}>
                           <SelectTrigger>
                             <SelectValue />
@@ -370,15 +457,26 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
                       </div>
                     </div>
 
-                    <Card className="bg-card/50">
+                    <Card className="bg-card/50 overflow-hidden">
                       <CardHeader>
                         <CardTitle className="text-sm">Предпросмотр</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="flex items-center gap-4">
-                          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-                            <Icon name={formData.icon as any} size={32} className="text-primary" />
+                        {formData.imageUrl && (
+                          <div className="w-full h-48 mb-4 rounded-lg overflow-hidden border border-border">
+                            <img 
+                              src={formData.imageUrl} 
+                              alt="Preview"
+                              className="w-full h-full object-cover"
+                            />
                           </div>
+                        )}
+                        <div className="flex items-center gap-4">
+                          {!formData.imageUrl && (
+                            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+                              <Icon name={formData.icon as any} size={32} className="text-primary" />
+                            </div>
+                          )}
                           <div className="flex-1">
                             <h4 className="font-bold text-lg">{formData.name || 'Название товара'}</h4>
                             <p className="text-sm text-muted-foreground">{formData.description || 'Описание товара'}</p>

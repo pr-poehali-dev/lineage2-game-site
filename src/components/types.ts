@@ -47,6 +47,7 @@ export interface ShopItem {
   price: number;
   icon: string;
   type: 'weapon' | 'armor' | 'potion' | 'boost';
+  imageUrl?: string;
 }
 
 export interface RaidBoss {
