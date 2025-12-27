@@ -19,11 +19,11 @@ const HeroSection = ({ statistics, onRegisterClick }: HeroSectionProps) => {
             Сервер онлайн • {statistics?.online_players || 0} игроков
           </Badge>
         </div>
-        <h2 className="text-6xl md:text-7xl font-bold mb-6 text-glow">
-          LINEAGE 2
+        <h2 className="text-6xl md:text-8xl font-bold mb-6 text-glow tracking-wider">
+          ЛЕГЕНДА ВОЗРОЖДАЕТСЯ
         </h2>
-        <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-          Эпическая MMORPG с тысячами игроков, масштабными сражениями и бесконечными приключениями
+        <p className="text-xl md:text-2xl text-foreground/90 mb-8 max-w-3xl mx-auto font-medium">
+          Погрузись в мир эпических сражений, древних замков и легендарных героев
         </p>
         <div className="flex gap-4 justify-center">
           <Button size="lg" className="bg-primary hover:bg-primary/90 text-lg px-8" onClick={onRegisterClick}>
