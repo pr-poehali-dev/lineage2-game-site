@@ -303,7 +303,7 @@ const Index = () => {
             </Badge>
           </div>
           <h2 className="text-6xl md:text-7xl font-bold mb-6 text-glow">
-            ВОЙДИ В ЛЕГЕНДУ
+            LINEAGE 2
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Эпическая MMORPG с тысячами игроков, масштабными сражениями и бесконечными приключениями
