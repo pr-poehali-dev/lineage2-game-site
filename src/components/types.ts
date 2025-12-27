@@ -83,3 +83,14 @@ export interface ForumPost {
   date: string;
   likes: number;
 }
+
+export interface PlayerOnMap {
+  id: string;
+  username: string;
+  level: number;
+  class: string;
+  x: number;
+  y: number;
+  location: string;
+  isOnline: boolean;
+}

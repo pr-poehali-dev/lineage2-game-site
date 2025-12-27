@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 import { GameClass, Location, NewsItem, Player, ClassStat, RaidBoss } from '@/components/types';
+import MapSection from './MapSection';
 
 interface ContentSectionsProps {
   gameClasses: GameClass[];
@@ -196,67 +197,15 @@ const ContentSections = ({
       <section id="map" className="py-20 px-4">
         <div className="container mx-auto">
           <h3 className="text-4xl font-bold mb-4 text-center text-glow">КАРТА МИРА</h3>
-          <p className="text-center text-muted-foreground mb-12">
-            Исследуй огромный мир, полный опасностей и сокровищ
+          <p className="text-center text-muted-foreground mb-8">
+            Исследуй огромный мир и отслеживай игроков онлайн
           </p>
-          <div className="max-w-4xl mx-auto">
-            <Card className="card-glow">
-              <CardContent className="p-8">
-                <div className="relative w-full h-[500px] bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border-2 border-primary/30">
-                  {locations.map((location) => (
-                    <button
-                      key={location.id}
-                      onClick={() => setSelectedLocation(location)}
-                      className="absolute transform -translate-x-1/2 -translate-y-1/2 group"
-                      style={{ left: `${location.x}%`, top: `${location.y}%` }}
-                    >
-                      <div className="relative">
-                        <div className="w-4 h-4 rounded-full bg-primary animate-pulse"></div>
-                        <div className="absolute inset-0 w-4 h-4 rounded-full bg-primary/30 animate-ping"></div>
-                        {location.type === 'town' && (
-                          <Icon name="Home" size={20} className="absolute -top-6 -left-2 text-accent" />
-                        )}
-                        {location.type === 'dungeon' && (
-                          <Icon name="Castle" size={20} className="absolute -top-6 -left-2 text-destructive" />
-                        )}
-                        {location.type === 'field' && (
-                          <Icon name="Trees" size={20} className="absolute -top-6 -left-2 text-green-500" />
-                        )}
-                      </div>
-                      <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        <div className="bg-card border border-border rounded px-3 py-2 text-sm">
-                          <div className="font-semibold">{location.name}</div>
-                          <div className="text-xs text-muted-foreground">Уровень: {location.level}</div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                {selectedLocation && (
-                  <div className="mt-6 p-4 bg-primary/10 rounded-lg border border-primary/30 animate-fade-in">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                        {selectedLocation.type === 'town' && <Icon name="Home" size={24} className="text-accent" />}
-                        {selectedLocation.type === 'dungeon' && <Icon name="Castle" size={24} className="text-destructive" />}
-                        {selectedLocation.type === 'field' && <Icon name="Trees" size={24} className="text-green-500" />}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-lg">{selectedLocation.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Рекомендуемый уровень: {selectedLocation.level}
-                        </p>
-                        <Badge variant="outline" className="mt-1">
-                          {selectedLocation.type === 'town' && 'Город'}
-                          {selectedLocation.type === 'dungeon' && 'Подземелье'}
-                          {selectedLocation.type === 'field' && 'Поле охоты'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          
+          <MapSection 
+            locations={locations}
+            selectedLocation={selectedLocation}
+            setSelectedLocation={setSelectedLocation}
+          />
         </div>
       </section>
 
