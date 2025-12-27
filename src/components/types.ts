@@ -49,6 +49,16 @@ export interface ShopItem {
   type: 'weapon' | 'armor' | 'potion' | 'boost';
 }
 
+export interface RaidBoss {
+  id: string;
+  name: string;
+  level: number;
+  respawnTime: string;
+  isAlive: boolean;
+  location: string;
+  nextRespawn?: string;
+}
+
 export interface ClassStat {
   class: string;
   count: number;
