@@ -10,6 +10,7 @@ import Navigation from '@/components/sections/Navigation';
 import HeroSection from '@/components/sections/HeroSection';
 import AboutSection from '@/components/sections/AboutSection';
 import ContentSections from '@/components/sections/ContentSections';
+import ForumSection from '@/components/sections/ForumSection';
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState<string>('home');
@@ -346,6 +347,11 @@ const Index = () => {
         news={news}
         topPlayers={topPlayers}
         statistics={statistics}
+      />
+
+      <ForumSection
+        currentPlayer={currentPlayer}
+        onLoginClick={() => setShowLogin(true)}
       />
 
       <footer className="py-8 px-4 border-t border-border bg-card/50">

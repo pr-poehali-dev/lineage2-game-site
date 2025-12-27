@@ -29,7 +29,7 @@ const Navigation = ({
           <h1 className="text-2xl font-bold text-glow">LINEAGE II</h1>
         </div>
         <div className="hidden md:flex gap-6">
-          {['home', 'about', 'classes', 'raids', 'map', 'news', 'rankings', 'contact'].map((section) => (
+          {['home', 'about', 'classes', 'raids', 'map', 'forum', 'news', 'rankings', 'contact'].map((section) => (
             <button
               key={section}
               onClick={() => onSectionClick(section)}
@@ -42,6 +42,7 @@ const Navigation = ({
               {section === 'classes' && 'Классы'}
               {section === 'raids' && 'Рейды'}
               {section === 'map' && 'Карта мира'}
+              {section === 'forum' && 'Форум'}
               {section === 'news' && 'Новости'}
               {section === 'rankings' && 'Рейтинги'}
               {section === 'contact' && 'Контакты'}

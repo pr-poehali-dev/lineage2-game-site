@@ -63,3 +63,23 @@ export interface ClassStat {
   class: string;
   count: number;
 }
+
+export interface ForumTopic {
+  id: string;
+  title: string;
+  author: string;
+  category: string;
+  replies: number;
+  views: number;
+  lastReply: string;
+  isPinned?: boolean;
+  isLocked?: boolean;
+}
+
+export interface ForumPost {
+  id: string;
+  author: string;
+  content: string;
+  date: string;
+  likes: number;
+}
