@@ -342,9 +342,23 @@ const Index = () => {
                 <CardTitle>Эпические рейды</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground mb-4">
                   Сражайся с легендарными боссами: Баюм, Антарас, Валакас и другие драконы ждут тебя.
                 </p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Баюм:</span>
+                    <Badge variant="outline">Каждые 5 дней</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Антарас:</span>
+                    <Badge variant="outline">Каждые 7 дней</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Валакас:</span>
+                    <Badge variant="outline">Каждые 10 дней</Badge>
+                  </div>
+                </div>
               </CardContent>
             </Card>
             <Card className="card-glow hover-glow">
@@ -353,9 +367,23 @@ const Index = () => {
                 <CardTitle>Система кланов</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground mb-4">
                   Создай свой клан, объединяйся в альянсы и доминируй на сервере вместе с друзьями.
                 </p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Icon name="Shield" size={16} className="text-primary" />
+                    <span className="text-muted-foreground">Осадные войны по субботам</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Icon name="Users" size={16} className="text-primary" />
+                    <span className="text-muted-foreground">До 40 членов в клане</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Icon name="Crown" size={16} className="text-primary" />
+                    <span className="text-muted-foreground">Уникальные клановые скиллы</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
