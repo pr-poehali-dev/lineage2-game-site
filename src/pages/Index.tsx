@@ -296,7 +296,13 @@ const Index = () => {
 
       <section id="home" className="pt-32 pb-20 px-4">
         <div className="container mx-auto text-center animate-fade-in">
-          <div className="inline-block mb-6">
+          <div className="flex flex-col items-center gap-3 mb-6">
+            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500 px-4 py-2 animate-pulse">
+              <div className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-ping absolute"></div>
+              <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+              <Icon name="Wifi" size={16} className="mr-2" />
+              Сервер онлайн • {statistics?.online_players || 0} игроков
+            </Badge>
             <Badge variant="outline" className="text-primary border-primary px-4 py-2">
               <Icon name="Zap" size={16} className="mr-2" />
               Эра Драконов 2.0
