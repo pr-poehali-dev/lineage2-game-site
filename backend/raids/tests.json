@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Get raid bosses list",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "bosses": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

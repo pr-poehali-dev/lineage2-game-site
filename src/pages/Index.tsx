@@ -27,22 +27,17 @@ const Index = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [showShop, setShowShop] = useState(false);
   const [statistics, setStatistics] = useState<{ total_players: number; online_players: number; class_stats: ClassStat[] } | null>(null);
+  const [topPlayers, setTopPlayers] = useState<Player[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [raidBosses, setRaidBosses] = useState<RaidBoss[]>([
-    { id: '1', name: 'Баюм', level: 75, respawnTime: '5 дней', isAlive: true, location: 'Лес зеркал', nextRespawn: '2024-12-29T18:00:00' },
-    { id: '2', name: 'Антарас', level: 79, respawnTime: '7 дней', isAlive: false, location: 'Логово Антараса', nextRespawn: '2024-12-30T20:00:00' },
-    { id: '3', name: 'Валакас', level: 85, respawnTime: '10 дней', isAlive: true, location: 'Пещера Валакаса', nextRespawn: '2025-01-02T21:00:00' },
-    { id: '4', name: 'Королева муравьев', level: 40, respawnTime: '24 часа', isAlive: true, location: 'Муравейник', nextRespawn: '2024-12-28T14:00:00' },
-    { id: '5', name: 'Орфен', level: 50, respawnTime: '48 часов', isAlive: false, location: 'Храм Аркан', nextRespawn: '2024-12-29T10:00:00' },
-    { id: '6', name: 'Закен', level: 60, respawnTime: '72 часа', isAlive: true, location: 'Закенский алтарь', nextRespawn: '2024-12-31T22:00:00' },
-    { id: '7', name: 'Кор', level: 70, respawnTime: '4 дня', isAlive: false, location: 'Логово Кора', nextRespawn: '2024-12-28T16:00:00' },
-    { id: '8', name: 'Квин Аркания', level: 80, respawnTime: '6 дней', isAlive: true, location: 'Замок Аркании', nextRespawn: '2025-01-01T19:00:00' },
-    { id: '9', name: 'Фринтеза', level: 85, respawnTime: '8 дней', isAlive: false, location: 'Храм Фринтезы', nextRespawn: '2025-01-03T15:00:00' },
-  ]);
+  const [raidBosses, setRaidBosses] = useState<RaidBoss[]>([]);
   const [timeRemaining, setTimeRemaining] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   const API_URL = 'https://functions.poehali.dev/02f42820-5dff-4b5b-abaa-182b01ed3cd8';
+  const STATS_API_URL = 'https://functions.poehali.dev/7a4a963f-09d9-489c-bb57-674a61703f03';
+  const NEWS_API_URL = 'https://functions.poehali.dev/da7f7577-0e9b-4797-81f7-b1dfdf0a5538';
+  const RAIDS_API_URL = 'https://functions.poehali.dev/fa87c62b-aa78-4162-8e21-2fbf82f4da95';
 
   const gameClasses: GameClass[] = [
     {
@@ -100,20 +95,7 @@ const Index = () => {
     { id: '8', name: 'Логово Антараса', level: '70+', type: 'dungeon', x: 25, y: 80 }
   ];
 
-  const news: NewsItem[] = [
-    { id: '1', title: 'Новое обновление 2.0: Эра Драконов', date: '25.12.2024', category: 'Обновление' },
-    { id: '2', title: 'Турнир Олимпиады начинается!', date: '23.12.2024', category: 'События' },
-    { id: '3', title: 'Баланс классов: изменения в патче', date: '20.12.2024', category: 'Патч' },
-    { id: '4', title: 'Новые данжи и рейдовые боссы', date: '18.12.2024', category: 'Контент' }
-  ];
 
-  const topPlayers: Player[] = [
-    { id: '1', name: 'DarkLord', level: 85, class: 'Воин', score: 15420 },
-    { id: '2', name: 'MysticSage', level: 84, class: 'Маг', score: 14850 },
-    { id: '3', name: 'ShadowArrow', level: 83, class: 'Лучник', score: 14200 },
-    { id: '4', name: 'HolyKnight', level: 82, class: 'Рыцарь', score: 13900 },
-    { id: '5', name: 'StormMage', level: 81, class: 'Волшебник', score: 13500 }
-  ];
 
   const scrollToSection = (section: string) => {
     setActiveSection(section);
@@ -280,11 +262,41 @@ const Index = () => {
 
   const fetchStatistics = async () => {
     try {
-      const response = await fetch(API_URL);
+      const response = await fetch(STATS_API_URL);
       const data = await response.json();
-      setStatistics(data);
+      
+      if (response.ok) {
+        setStatistics(data.statistics);
+        setTopPlayers(data.top_players || []);
+      }
     } catch (error) {
       console.error('Failed to fetch statistics:', error);
+    }
+  };
+
+  const fetchNews = async () => {
+    try {
+      const response = await fetch(NEWS_API_URL);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setNews(data.news || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch news:', error);
+    }
+  };
+
+  const fetchRaidBosses = async () => {
+    try {
+      const response = await fetch(RAIDS_API_URL);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setRaidBosses(data.bosses || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch raid bosses:', error);
     }
   };
 
@@ -339,8 +351,16 @@ const Index = () => {
 
   useEffect(() => {
     fetchStatistics();
-    const interval = setInterval(fetchStatistics, 30000);
-    return () => clearInterval(interval);
+    fetchNews();
+    fetchRaidBosses();
+    
+    const statsInterval = setInterval(fetchStatistics, 30000);
+    const raidsInterval = setInterval(fetchRaidBosses, 60000);
+    
+    return () => {
+      clearInterval(statsInterval);
+      clearInterval(raidsInterval);
+    };
   }, []);
 
   return (

@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "name": "Get statistics",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "statistics": "object",
+        "top_players": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
