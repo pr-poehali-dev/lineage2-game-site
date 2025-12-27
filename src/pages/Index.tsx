@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +41,20 @@ interface Player {
   score: number;
 }
 
+interface LoggedPlayer {
+  id: number;
+  username: string;
+  email: string;
+  character_class: string;
+  level: number;
+  experience: number;
+}
+
+interface ClassStat {
+  class: string;
+  count: number;
+}
+
 const Index = () => {
   const [activeSection, setActiveSection] = useState<string>('home');
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
@@ -49,7 +63,16 @@ const Index = () => {
   const [selectedClass, setSelectedClass] = useState<GameClass | null>(null);
   const [formData, setFormData] = useState({ username: '', email: '', password: '', confirmPassword: '' });
   const [isRegistered, setIsRegistered] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginData, setLoginData] = useState({ username: '', password: '' });
+  const [currentPlayer, setCurrentPlayer] = useState<LoggedPlayer | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('authToken'));
+  const [showProfile, setShowProfile] = useState(false);
+  const [statistics, setStatistics] = useState<{ total_players: number; online_players: number; class_stats: ClassStat[] } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const API_URL = 'https://functions.poehali.dev/02f42820-5dff-4b5b-abaa-182b01ed3cd8';
 
   const gameClasses: GameClass[] = [
     {
@@ -137,7 +160,7 @@ const Index = () => {
     setFormData({ ...formData, [field]: value });
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!formData.username || !formData.email || !formData.password) {
       toast({ title: 'Ошибка', description: 'Заполните все поля', variant: 'destructive' });
       return;
@@ -150,16 +173,109 @@ const Index = () => {
       toast({ title: 'Ошибка', description: 'Пароль должен быть не менее 6 символов', variant: 'destructive' });
       return;
     }
-    setIsRegistered(true);
-    setTimeout(() => {
-      setShowRegister(false);
-      setIsRegistered(false);
-      setRegistrationStep(1);
-      setSelectedClass(null);
-      setFormData({ username: '', email: '', password: '', confirmPassword: '' });
-      toast({ title: 'Успешно!', description: `Добро пожаловать, ${formData.username}! Персонаж создан.` });
-    }, 2000);
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'register',
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          character_class: selectedClass?.name || 'Воин'
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setIsRegistered(true);
+        localStorage.setItem('authToken', data.token);
+        setAuthToken(data.token);
+        setCurrentPlayer(data.player);
+        
+        setTimeout(() => {
+          setShowRegister(false);
+          setIsRegistered(false);
+          setRegistrationStep(1);
+          setSelectedClass(null);
+          setFormData({ username: '', email: '', password: '', confirmPassword: '' });
+          toast({ title: 'Успешно!', description: `Добро пожаловать, ${data.player.username}! Персонаж создан.` });
+          fetchStatistics();
+        }, 2000);
+      } else {
+        toast({ title: 'Ошибка', description: data.error || 'Не удалось зарегистрироваться', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Проблема с соединением', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleLogin = async () => {
+    if (!loginData.username || !loginData.password) {
+      toast({ title: 'Ошибка', description: 'Введите имя и пароль', variant: 'destructive' });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'login',
+          username: loginData.username,
+          password: loginData.password
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        localStorage.setItem('authToken', data.token);
+        setAuthToken(data.token);
+        setCurrentPlayer(data.player);
+        setShowLogin(false);
+        setLoginData({ username: '', password: '' });
+        toast({ title: 'Успешно!', description: `С возвращением, ${data.player.username}!` });
+        fetchStatistics();
+      } else {
+        toast({ title: 'Ошибка', description: data.error || 'Неверные данные', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Проблема с соединением', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    setAuthToken(null);
+    setCurrentPlayer(null);
+    setShowProfile(false);
+    toast({ title: 'Вы вышли', description: 'До новых встреч в мире Lineage II!' });
+  };
+
+  const fetchStatistics = async () => {
+    try {
+      const response = await fetch(API_URL);
+      const data = await response.json();
+      setStatistics(data);
+    } catch (error) {
+      console.error('Failed to fetch statistics:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchStatistics();
+    const interval = setInterval(fetchStatistics, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const resetRegistration = () => {
     setShowRegister(false);
@@ -197,14 +313,28 @@ const Index = () => {
             ))}
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline">
-              <Icon name="LogIn" size={16} className="mr-2" />
-              Войти
-            </Button>
-            <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => setShowRegister(true)}>
-              <Icon name="UserPlus" size={16} className="mr-2" />
-              Регистрация
-            </Button>
+            {currentPlayer ? (
+              <>
+                <Button size="sm" variant="outline" onClick={() => setShowProfile(true)}>
+                  <Icon name="User" size={16} className="mr-2" />
+                  {currentPlayer.username}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={handleLogout}>
+                  <Icon name="LogOut" size={16} />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button size="sm" variant="outline" onClick={() => setShowLogin(true)}>
+                  <Icon name="LogIn" size={16} className="mr-2" />
+                  Войти
+                </Button>
+                <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => setShowRegister(true)}>
+                  <Icon name="UserPlus" size={16} className="mr-2" />
+                  Регистрация
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -457,45 +587,109 @@ const Index = () => {
 
       <section id="rankings" className="py-20 px-4 bg-card/30">
         <div className="container mx-auto">
-          <h3 className="text-4xl font-bold mb-12 text-center text-glow">ТОП ИГРОКОВ</h3>
-          <Card className="max-w-3xl mx-auto card-glow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Icon name="Trophy" className="text-primary" size={24} />
-                Рейтинг Олимпиады
-              </CardTitle>
-              <CardDescription>Лучшие бойцы сервера</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {topPlayers.map((player, index) => (
-                  <div
-                    key={player.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                        index === 0 ? 'bg-yellow-500/20 text-yellow-500' :
-                        index === 1 ? 'bg-gray-400/20 text-gray-400' :
-                        index === 2 ? 'bg-orange-500/20 text-orange-500' :
-                        'bg-primary/20 text-primary'
-                      }`}>
-                        {index + 1}
+          <h3 className="text-4xl font-bold mb-12 text-center text-glow">СТАТИСТИКА СЕРВЕРА</h3>
+          
+          {statistics && (
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
+              <Card className="card-glow">
+                <CardHeader>
+                  <Icon name="Users" size={32} className="text-primary mb-2" />
+                  <CardTitle className="text-3xl">{statistics.total_players}</CardTitle>
+                  <CardDescription>Всего игроков</CardDescription>
+                </CardHeader>
+              </Card>
+              <Card className="card-glow">
+                <CardHeader>
+                  <Icon name="Wifi" size={32} className="text-green-500 mb-2" />
+                  <CardTitle className="text-3xl">{statistics.online_players}</CardTitle>
+                  <CardDescription>Онлайн сейчас</CardDescription>
+                </CardHeader>
+              </Card>
+              <Card className="card-glow">
+                <CardHeader>
+                  <Icon name="TrendingUp" size={32} className="text-accent mb-2" />
+                  <CardTitle className="text-3xl">{statistics.class_stats.length}</CardTitle>
+                  <CardDescription>Активных классов</CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            <Card className="card-glow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Icon name="Trophy" className="text-primary" size={24} />
+                  Рейтинг Олимпиады
+                </CardTitle>
+                <CardDescription>Лучшие бойцы сервера</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {topPlayers.map((player, index) => (
+                    <div
+                      key={player.id}
+                      className="flex items-center justify-between p-4 rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                          index === 0 ? 'bg-yellow-500/20 text-yellow-500' :
+                          index === 1 ? 'bg-gray-400/20 text-gray-400' :
+                          index === 2 ? 'bg-orange-500/20 text-orange-500' :
+                          'bg-primary/20 text-primary'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <div>
+                          <div className="font-semibold">{player.name}</div>
+                          <div className="text-sm text-muted-foreground">{player.class} • Уровень {player.level}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-semibold">{player.name}</div>
-                        <div className="text-sm text-muted-foreground">{player.class} • Уровень {player.level}</div>
+                      <div className="text-right">
+                        <div className="font-bold text-primary">{player.score.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">очков</div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-primary">{player.score.toLocaleString()}</div>
-                      <div className="text-xs text-muted-foreground">очков</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="card-glow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Icon name="BarChart3" className="text-primary" size={24} />
+                  Популярность классов
+                </CardTitle>
+                <CardDescription>Статистика по зарегистрированным персонажам</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {statistics && statistics.class_stats.length > 0 ? (
+                    statistics.class_stats.map((stat, index) => {
+                      const percentage = statistics.total_players > 0 ? (stat.count / statistics.total_players) * 100 : 0;
+                      return (
+                        <div key={index} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold">{stat.class}</span>
+                            <span className="text-sm text-muted-foreground">{stat.count} игроков ({percentage.toFixed(1)}%)</span>
+                          </div>
+                          <div className="w-full bg-primary/10 rounded-full h-2 overflow-hidden">
+                            <div 
+                              className="bg-primary h-full transition-all duration-500 rounded-full"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">Нет данных о классах</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
 
@@ -671,9 +865,19 @@ const Index = () => {
                     <Button
                       className="flex-1 bg-primary hover:bg-primary/90"
                       onClick={handleRegister}
+                      disabled={isLoading}
                     >
-                      <Icon name="CheckCircle" size={18} className="mr-2" />
-                      Зарегистрироваться
+                      {isLoading ? (
+                        <>
+                          <Icon name="Loader2" size={18} className="mr-2 animate-spin" />
+                          Создание...
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="CheckCircle" size={18} className="mr-2" />
+                          Зарегистрироваться
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -689,6 +893,169 @@ const Index = () => {
                 Персонаж {formData.username} создан. Класс: {selectedClass?.name}
               </DialogDescription>
               <p className="text-muted-foreground mt-4">Добро пожаловать в мир Lineage II!</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showLogin} onOpenChange={setShowLogin}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center text-glow">ВХОД В ИГРУ</DialogTitle>
+            <DialogDescription className="text-center">
+              Введите данные вашего персонажа
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="login-username">Имя персонажа</Label>
+              <div className="relative">
+                <Icon name="User" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="login-username"
+                  placeholder="Введите имя персонажа"
+                  value={loginData.username}
+                  onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="login-password">Пароль</Label>
+              <div className="relative">
+                <Icon name="Lock" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="login-password"
+                  type="password"
+                  placeholder="Введите пароль"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <Button
+              className="w-full bg-primary hover:bg-primary/90"
+              onClick={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Icon name="Loader2" size={18} className="mr-2 animate-spin" />
+                  Вход...
+                </>
+              ) : (
+                <>
+                  <Icon name="LogIn" size={18} className="mr-2" />
+                  Войти
+                </>
+              )}
+            </Button>
+
+            <div className="text-center text-sm text-muted-foreground">
+              Нет аккаунта?{' '}
+              <button
+                className="text-primary hover:underline"
+                onClick={() => {
+                  setShowLogin(false);
+                  setShowRegister(true);
+                }}
+              >
+                Зарегистрироваться
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showProfile} onOpenChange={setShowProfile}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-3xl font-bold text-center text-glow">ЛИЧНЫЙ КАБИНЕТ</DialogTitle>
+            <DialogDescription className="text-center">
+              Информация о персонаже
+            </DialogDescription>
+          </DialogHeader>
+
+          {currentPlayer && (
+            <div className="space-y-6 mt-4">
+              <Card className="bg-primary/10 border-primary/30">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-6">
+                    <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Icon name="User" size={40} className="text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold mb-1">{currentPlayer.username}</h3>
+                      <p className="text-sm text-muted-foreground mb-2">{currentPlayer.email}</p>
+                      <Badge variant="outline" className="text-base">
+                        {currentPlayer.character_class}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <Card className="card-glow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Icon name="Star" className="text-accent" size={20} />
+                      Уровень
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-4xl font-bold text-primary">{currentPlayer.level}</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="card-glow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Icon name="Zap" className="text-yellow-500" size={20} />
+                      Опыт
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-4xl font-bold text-primary">{currentPlayer.experience.toLocaleString()}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="card-glow">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Icon name="TrendingUp" className="text-green-500" size={20} />
+                    Прогресс до следующего уровня
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>{currentPlayer.experience.toLocaleString()} / {((currentPlayer.level + 1) * 1000).toLocaleString()} XP</span>
+                      <span>{Math.min(100, (currentPlayer.experience / ((currentPlayer.level + 1) * 1000)) * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full bg-primary/10 rounded-full h-3 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-primary to-accent h-full transition-all duration-500 rounded-full"
+                        style={{ width: `${Math.min(100, (currentPlayer.experience / ((currentPlayer.level + 1) * 1000)) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleLogout}
+              >
+                <Icon name="LogOut" size={18} className="mr-2" />
+                Выйти из аккаунта
+              </Button>
             </div>
           )}
         </DialogContent>

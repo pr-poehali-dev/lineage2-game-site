@@ -1,0 +1,38 @@
+{
+  "tests": [
+    {
+      "name": "Get statistics",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "total_players": "number",
+        "online_players": "number",
+        "class_stats": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Register new player",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "register",
+        "username": "TestWarrior123",
+        "email": "test@lineage2.com",
+        "password": "test123456",
+        "character_class": "Воин"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "token": "string",
+        "player": {
+          "username": "TestWarrior123",
+          "character_class": "Воин"
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
