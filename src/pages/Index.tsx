@@ -3,57 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
-
-interface GameClass {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  type: 'warrior' | 'mage' | 'archer';
-}
-
-interface Location {
-  id: string;
-  name: string;
-  level: string;
-  type: 'town' | 'dungeon' | 'field';
-  x: number;
-  y: number;
-}
-
-interface NewsItem {
-  id: string;
-  title: string;
-  date: string;
-  category: string;
-}
-
-interface Player {
-  id: string;
-  name: string;
-  level: number;
-  class: string;
-  score: number;
-}
-
-interface LoggedPlayer {
-  id: number;
-  username: string;
-  email: string;
-  character_class: string;
-  level: number;
-  experience: number;
-}
-
-interface ClassStat {
-  class: string;
-  count: number;
-}
+import { GameClass, Location, NewsItem, Player, LoggedPlayer, ClassStat } from '@/components/types';
+import RegistrationModal from '@/components/RegistrationModal';
+import LoginModal from '@/components/LoginModal';
+import ProfileModal from '@/components/ProfileModal';
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState<string>('home');
@@ -271,12 +226,6 @@ const Index = () => {
     }
   };
 
-  useEffect(() => {
-    fetchStatistics();
-    const interval = setInterval(fetchStatistics, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
   const resetRegistration = () => {
     setShowRegister(false);
     setRegistrationStep(1);
@@ -284,6 +233,12 @@ const Index = () => {
     setFormData({ username: '', email: '', password: '', confirmPassword: '' });
     setIsRegistered(false);
   };
+
+  useEffect(() => {
+    fetchStatistics();
+    const interval = setInterval(fetchStatistics, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
@@ -726,340 +681,40 @@ const Index = () => {
         </div>
       </footer>
 
-      <Dialog open={showRegister} onOpenChange={resetRegistration}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          {!isRegistered ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-3xl font-bold text-center text-glow">
-                  {registrationStep === 1 ? 'ВЫБЕРИ КЛАСС' : 'СОЗДАЙ ПЕРСОНАЖА'}
-                </DialogTitle>
-                <DialogDescription className="text-center">
-                  {registrationStep === 1 ? 'Выбери класс для своего первого персонажа' : 'Заполни данные для регистрации'}
-                </DialogDescription>
-              </DialogHeader>
+      <RegistrationModal
+        showRegister={showRegister}
+        isRegistered={isRegistered}
+        registrationStep={registrationStep}
+        selectedClass={selectedClass}
+        formData={formData}
+        isLoading={isLoading}
+        gameClasses={gameClasses}
+        onClose={resetRegistration}
+        onClassSelect={handleClassSelect}
+        onFormChange={handleFormChange}
+        onRegister={handleRegister}
+        onBackToClassSelection={() => setRegistrationStep(1)}
+      />
 
-              {registrationStep === 1 && (
-                <div className="grid md:grid-cols-3 gap-4 mt-4 animate-fade-in">
-                  {gameClasses.map((cls) => (
-                    <Card
-                      key={cls.id}
-                      className="cursor-pointer hover-glow transition-all hover:scale-105"
-                      onClick={() => handleClassSelect(cls)}
-                    >
-                      <CardHeader>
-                        <div className="flex flex-col items-center gap-3">
-                          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-                            <Icon name={cls.icon as any} size={32} className="text-primary" />
-                          </div>
-                          <CardTitle className="text-center">{cls.name}</CardTitle>
-                          <Badge variant="outline">
-                            {cls.type === 'warrior' && 'Воин'}
-                            {cls.type === 'mage' && 'Маг'}
-                            {cls.type === 'archer' && 'Лучник'}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground text-center">{cls.description}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+      <LoginModal
+        showLogin={showLogin}
+        loginData={loginData}
+        isLoading={isLoading}
+        onClose={() => setShowLogin(false)}
+        onLoginDataChange={setLoginData}
+        onLogin={handleLogin}
+        onSwitchToRegister={() => {
+          setShowLogin(false);
+          setShowRegister(true);
+        }}
+      />
 
-              {registrationStep === 2 && selectedClass && (
-                <div className="space-y-6 animate-fade-in">
-                  <Card className="bg-primary/10 border-primary/30">
-                    <CardContent className="p-4 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                        <Icon name={selectedClass.icon as any} size={24} className="text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold">{selectedClass.name}</h4>
-                        <p className="text-sm text-muted-foreground">Выбранный класс</p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="ml-auto"
-                        onClick={() => setRegistrationStep(1)}
-                      >
-                        Изменить
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="username">Имя персонажа</Label>
-                      <div className="relative">
-                        <Icon name="User" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          id="username"
-                          placeholder="Введите имя персонажа"
-                          value={formData.username}
-                          onChange={(e) => handleFormChange('username', e.target.value)}
-                          className="pl-10"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <div className="relative">
-                        <Icon name="Mail" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="your@email.com"
-                          value={formData.email}
-                          onChange={(e) => handleFormChange('email', e.target.value)}
-                          className="pl-10"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="password">Пароль</Label>
-                        <div className="relative">
-                          <Icon name="Lock" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            id="password"
-                            type="password"
-                            placeholder="Минимум 6 символов"
-                            value={formData.password}
-                            onChange={(e) => handleFormChange('password', e.target.value)}
-                            className="pl-10"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Подтверждение</Label>
-                        <div className="relative">
-                          <Icon name="Lock" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            id="confirmPassword"
-                            type="password"
-                            placeholder="Повторите пароль"
-                            value={formData.confirmPassword}
-                            onChange={(e) => handleFormChange('confirmPassword', e.target.value)}
-                            className="pl-10"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setRegistrationStep(1)}
-                    >
-                      <Icon name="ArrowLeft" size={18} className="mr-2" />
-                      Назад
-                    </Button>
-                    <Button
-                      className="flex-1 bg-primary hover:bg-primary/90"
-                      onClick={handleRegister}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Icon name="Loader2" size={18} className="mr-2 animate-spin" />
-                          Создание...
-                        </>
-                      ) : (
-                        <>
-                          <Icon name="CheckCircle" size={18} className="mr-2" />
-                          Зарегистрироваться
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="py-12 text-center animate-scale-in">
-              <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6 animate-pulse">
-                <Icon name="CheckCircle" size={48} className="text-green-500" />
-              </div>
-              <DialogTitle className="text-3xl font-bold mb-3 text-glow">Регистрация завершена!</DialogTitle>
-              <DialogDescription className="text-lg">
-                Персонаж {formData.username} создан. Класс: {selectedClass?.name}
-              </DialogDescription>
-              <p className="text-muted-foreground mt-4">Добро пожаловать в мир Lineage II!</p>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showLogin} onOpenChange={setShowLogin}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-center text-glow">ВХОД В ИГРУ</DialogTitle>
-            <DialogDescription className="text-center">
-              Введите данные вашего персонажа
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="login-username">Имя персонажа</Label>
-              <div className="relative">
-                <Icon name="User" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="login-username"
-                  placeholder="Введите имя персонажа"
-                  value={loginData.username}
-                  onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="login-password">Пароль</Label>
-              <div className="relative">
-                <Icon name="Lock" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="login-password"
-                  type="password"
-                  placeholder="Введите пароль"
-                  value={loginData.password}
-                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <Button
-              className="w-full bg-primary hover:bg-primary/90"
-              onClick={handleLogin}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Icon name="Loader2" size={18} className="mr-2 animate-spin" />
-                  Вход...
-                </>
-              ) : (
-                <>
-                  <Icon name="LogIn" size={18} className="mr-2" />
-                  Войти
-                </>
-              )}
-            </Button>
-
-            <div className="text-center text-sm text-muted-foreground">
-              Нет аккаунта?{' '}
-              <button
-                className="text-primary hover:underline"
-                onClick={() => {
-                  setShowLogin(false);
-                  setShowRegister(true);
-                }}
-              >
-                Зарегистрироваться
-              </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showProfile} onOpenChange={setShowProfile}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-3xl font-bold text-center text-glow">ЛИЧНЫЙ КАБИНЕТ</DialogTitle>
-            <DialogDescription className="text-center">
-              Информация о персонаже
-            </DialogDescription>
-          </DialogHeader>
-
-          {currentPlayer && (
-            <div className="space-y-6 mt-4">
-              <Card className="bg-primary/10 border-primary/30">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-6">
-                    <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
-                      <Icon name="User" size={40} className="text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-bold mb-1">{currentPlayer.username}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">{currentPlayer.email}</p>
-                      <Badge variant="outline" className="text-base">
-                        {currentPlayer.character_class}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <Card className="card-glow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Icon name="Star" className="text-accent" size={20} />
-                      Уровень
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-4xl font-bold text-primary">{currentPlayer.level}</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="card-glow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Icon name="Zap" className="text-yellow-500" size={20} />
-                      Опыт
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-4xl font-bold text-primary">{currentPlayer.experience.toLocaleString()}</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card className="card-glow">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Icon name="TrendingUp" className="text-green-500" size={20} />
-                    Прогресс до следующего уровня
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>{currentPlayer.experience.toLocaleString()} / {((currentPlayer.level + 1) * 1000).toLocaleString()} XP</span>
-                      <span>{Math.min(100, (currentPlayer.experience / ((currentPlayer.level + 1) * 1000)) * 100).toFixed(1)}%</span>
-                    </div>
-                    <div className="w-full bg-primary/10 rounded-full h-3 overflow-hidden">
-                      <div 
-                        className="bg-gradient-to-r from-primary to-accent h-full transition-all duration-500 rounded-full"
-                        style={{ width: `${Math.min(100, (currentPlayer.experience / ((currentPlayer.level + 1) * 1000)) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleLogout}
-              >
-                <Icon name="LogOut" size={18} className="mr-2" />
-                Выйти из аккаунта
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ProfileModal
+        showProfile={showProfile}
+        currentPlayer={currentPlayer}
+        onClose={() => setShowProfile(false)}
+        onLogout={handleLogout}
+      />
     </div>
   );
 };
