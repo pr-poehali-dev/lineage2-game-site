@@ -37,6 +37,16 @@ export interface LoggedPlayer {
   character_class: string;
   level: number;
   experience: number;
+  coins?: number;
+}
+
+export interface ShopItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  icon: string;
+  type: 'weapon' | 'armor' | 'potion' | 'boost';
 }
 
 export interface ClassStat {

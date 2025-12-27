@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
-import { GameClass, Location, NewsItem, Player, LoggedPlayer, ClassStat } from '@/components/types';
+import { GameClass, Location, NewsItem, Player, LoggedPlayer, ClassStat, ShopItem } from '@/components/types';
 import RegistrationModal from '@/components/RegistrationModal';
 import LoginModal from '@/components/LoginModal';
 import ProfileModal from '@/components/ProfileModal';
+import ShopModal from '@/components/ShopModal';
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState<string>('home');
@@ -23,6 +24,7 @@ const Index = () => {
   const [currentPlayer, setCurrentPlayer] = useState<LoggedPlayer | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('authToken'));
   const [showProfile, setShowProfile] = useState(false);
+  const [showShop, setShowShop] = useState(false);
   const [statistics, setStatistics] = useState<{ total_players: number; online_players: number; class_stats: ClassStat[] } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -149,7 +151,7 @@ const Index = () => {
         setIsRegistered(true);
         localStorage.setItem('authToken', data.token);
         setAuthToken(data.token);
-        setCurrentPlayer(data.player);
+        setCurrentPlayer({ ...data.player, coins: 100 });
         
         setTimeout(() => {
           setShowRegister(false);
@@ -193,7 +195,7 @@ const Index = () => {
       if (response.ok && data.success) {
         localStorage.setItem('authToken', data.token);
         setAuthToken(data.token);
-        setCurrentPlayer(data.player);
+        setCurrentPlayer({ ...data.player, coins: data.player.coins || 100 });
         setShowLogin(false);
         setLoginData({ username: '', password: '' });
         toast({ title: 'Успешно!', description: `С возвращением, ${data.player.username}!` });
@@ -214,6 +216,25 @@ const Index = () => {
     setCurrentPlayer(null);
     setShowProfile(false);
     toast({ title: 'Вы вышли', description: 'До новых встреч в мире Lineage II!' });
+  };
+
+  const handlePurchase = (item: ShopItem) => {
+    if (currentPlayer && currentPlayer.coins && currentPlayer.coins >= item.price) {
+      setCurrentPlayer({
+        ...currentPlayer,
+        coins: currentPlayer.coins - item.price
+      });
+      toast({
+        title: 'Покупка успешна!',
+        description: `Вы приобрели: ${item.name}`
+      });
+    } else {
+      toast({
+        title: 'Недостаточно монет',
+        description: 'Пополните баланс для покупки',
+        variant: 'destructive'
+      });
+    }
   };
 
   const fetchStatistics = async () => {
@@ -296,16 +317,12 @@ const Index = () => {
 
       <section id="home" className="pt-32 pb-20 px-4">
         <div className="container mx-auto text-center animate-fade-in">
-          <div className="flex flex-col items-center gap-3 mb-6">
+          <div className="inline-block mb-6">
             <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500 px-4 py-2 animate-pulse">
               <div className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-ping absolute"></div>
               <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
               <Icon name="Wifi" size={16} className="mr-2" />
               Сервер онлайн • {statistics?.online_players || 0} игроков
-            </Badge>
-            <Badge variant="outline" className="text-primary border-primary px-4 py-2">
-              <Icon name="Zap" size={16} className="mr-2" />
-              Эра Драконов 2.0
             </Badge>
           </div>
           <h2 className="text-6xl md:text-7xl font-bold mb-6 text-glow">
@@ -748,6 +765,17 @@ const Index = () => {
         currentPlayer={currentPlayer}
         onClose={() => setShowProfile(false)}
         onLogout={handleLogout}
+        onOpenShop={() => {
+          setShowProfile(false);
+          setShowShop(true);
+        }}
+      />
+
+      <ShopModal
+        showShop={showShop}
+        playerCoins={currentPlayer?.coins || 0}
+        onClose={() => setShowShop(false)}
+        onPurchase={handlePurchase}
       />
     </div>
   );

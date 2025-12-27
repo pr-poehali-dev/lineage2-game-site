@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 import { LoggedPlayer } from './types';
 
@@ -10,17 +11,19 @@ interface ProfileModalProps {
   currentPlayer: LoggedPlayer | null;
   onClose: () => void;
   onLogout: () => void;
+  onOpenShop: () => void;
 }
 
 const ProfileModal = ({
   showProfile,
   currentPlayer,
   onClose,
-  onLogout
+  onLogout,
+  onOpenShop
 }: ProfileModalProps) => {
   return (
     <Dialog open={showProfile} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-3xl font-bold text-center text-glow">ЛИЧНЫЙ КАБИНЕТ</DialogTitle>
           <DialogDescription className="text-center">
@@ -29,7 +32,19 @@ const ProfileModal = ({
         </DialogHeader>
 
         {currentPlayer && (
-          <div className="space-y-6 mt-4">
+          <Tabs defaultValue="profile" className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="profile">
+                <Icon name="User" size={16} className="mr-2" />
+                Профиль
+              </TabsTrigger>
+              <TabsTrigger value="shop">
+                <Icon name="ShoppingBag" size={16} className="mr-2" />
+                Магазин
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="profile" className="space-y-6 mt-4">
             <Card className="bg-primary/10 border-primary/30">
               <CardContent className="p-6">
                 <div className="flex items-center gap-6">
@@ -96,15 +111,74 @@ const ProfileModal = ({
               </CardContent>
             </Card>
 
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={onLogout}
-            >
-              <Icon name="LogOut" size={18} className="mr-2" />
-              Выйти из аккаунта
-            </Button>
-          </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={onLogout}
+              >
+                <Icon name="LogOut" size={18} className="mr-2" />
+                Выйти из аккаунта
+              </Button>
+            </TabsContent>
+
+            <TabsContent value="shop" className="space-y-4 mt-4">
+              <Card className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                        <Icon name="Coins" size={32} className="text-yellow-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Ваш баланс:</p>
+                        <p className="text-3xl font-bold text-yellow-500">{currentPlayer.coins || 0} монет</p>
+                      </div>
+                    </div>
+                    <Button onClick={onOpenShop} className="bg-primary hover:bg-primary/90">
+                      <Icon name="ShoppingCart" size={18} className="mr-2" />
+                      Открыть магазин
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <Card className="card-glow hover:scale-105 transition-transform cursor-pointer">
+                  <CardHeader className="text-center">
+                    <Icon name="Plus" size={40} className="mx-auto text-primary mb-2" />
+                    <CardTitle className="text-xl">100 монет</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <p className="text-3xl font-bold text-primary mb-4">99₽</p>
+                    <Button className="w-full bg-primary">Купить</Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="card-glow hover:scale-105 transition-transform cursor-pointer border-primary">
+                  <CardHeader className="text-center">
+                    <Badge className="mb-2 bg-green-500">ПОПУЛЯРНОЕ</Badge>
+                    <Icon name="Zap" size={40} className="mx-auto text-primary mb-2" />
+                    <CardTitle className="text-xl">500 монет</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <p className="text-3xl font-bold text-primary mb-4">399₽</p>
+                    <Button className="w-full bg-primary">Купить</Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="card-glow hover:scale-105 transition-transform cursor-pointer">
+                  <CardHeader className="text-center">
+                    <Icon name="Crown" size={40} className="mx-auto text-yellow-500 mb-2" />
+                    <CardTitle className="text-xl">1000 монет</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <p className="text-3xl font-bold text-primary mb-4">699₽</p>
+                    <Button className="w-full bg-primary">Купить</Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         )}
       </DialogContent>
     </Dialog>
