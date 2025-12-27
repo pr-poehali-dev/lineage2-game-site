@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import ShopBalance from './shop/ShopBalance';
 import ShopItemCard from './shop/ShopItemCard';
 import ShopItemEditor from './shop/ShopItemEditor';
+import ShopFilters from './shop/ShopFilters';
 
 interface ShopModalProps {
   showShop: boolean;
@@ -82,6 +83,9 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
   });
 
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedType, setSelectedType] = useState('all');
+  const [sortBy, setSortBy] = useState('default');
 
   const iconOptions = [
     'Sword', 'Shield', 'Target', 'Wand2', 'Sparkles', 'Droplet', 
@@ -216,6 +220,46 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
     setIsCreating(false);
   };
 
+  const resetFilters = () => {
+    setSearchQuery('');
+    setSelectedType('all');
+    setSortBy('default');
+  };
+
+  const filteredAndSortedItems = useMemo(() => {
+    let items = [...shopItems];
+
+    if (searchQuery) {
+      items = items.filter(item => 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (selectedType !== 'all') {
+      items = items.filter(item => item.type === selectedType);
+    }
+
+    switch (sortBy) {
+      case 'price-asc':
+        items.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        items.sort((a, b) => b.price - a.price);
+        break;
+      case 'name-asc':
+        items.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'name-desc':
+        items.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      default:
+        break;
+    }
+
+    return items;
+  }, [shopItems, searchQuery, selectedType, sortBy]);
+
   return (
     <Dialog open={showShop} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -244,17 +288,37 @@ const ShopModal = ({ showShop, playerCoins, onClose, onPurchase }: ShopModalProp
               onBuyCoins={handleBuyCoins}
             />
 
-            <div className="grid md:grid-cols-2 gap-4">
-              {shopItems.map((item) => (
-                <ShopItemCard
-                  key={item.id}
-                  item={item}
-                  playerCoins={playerCoins}
-                  onPurchase={handlePurchase}
-                  onEdit={startEdit}
-                />
-              ))}
-            </div>
+            <ShopFilters
+              searchQuery={searchQuery}
+              selectedType={selectedType}
+              sortBy={sortBy}
+              onSearchChange={setSearchQuery}
+              onTypeChange={setSelectedType}
+              onSortChange={setSortBy}
+              onReset={resetFilters}
+            />
+
+            {filteredAndSortedItems.length === 0 ? (
+              <div className="text-center py-12">
+                <Icon name="PackageX" size={48} className="mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Товары не найдены</h3>
+                <p className="text-muted-foreground mb-4">
+                  Попробуйте изменить параметры поиска или фильтры
+                </p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                {filteredAndSortedItems.map((item) => (
+                  <ShopItemCard
+                    key={item.id}
+                    item={item}
+                    playerCoins={playerCoins}
+                    onPurchase={handlePurchase}
+                    onEdit={startEdit}
+                  />
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="editor" className="space-y-6">
