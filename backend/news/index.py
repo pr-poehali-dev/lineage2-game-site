@@ -3,19 +3,26 @@ import os
 import psycopg2
 
 def handler(event: dict, context) -> dict:
-    '''API для получения новостей сервера'''
+    '''API для получения новостей сервера и управления настройками сайта'''
     method = event.get('httpMethod', 'GET')
+    path = event.get('path', '')
     
     if method == 'OPTIONS':
         return {
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type'
             },
             'body': ''
         }
+    
+    if '/settings' in path:
+        if method == 'GET':
+            return get_settings()
+        elif method == 'PUT':
+            return update_settings(event)
     
     if method == 'GET':
         return get_news()
@@ -104,6 +111,69 @@ def create_news(event: dict):
             'statusCode': 201,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
             'body': json.dumps({'id': news_id, 'message': 'News created'})
+        }
+        
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': str(e)})
+        }
+
+def get_settings():
+    '''Получает настройки сайта'''
+    try:
+        dsn = os.environ.get('DATABASE_URL')
+        conn = psycopg2.connect(dsn)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT key, value FROM site_settings")
+        
+        settings = {}
+        for row in cursor.fetchall():
+            settings[row[0]] = row[1]
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps(settings)
+        }
+        
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'error': str(e)})
+        }
+
+def update_settings(event: dict):
+    '''Обновляет настройки сайта'''
+    try:
+        body = json.loads(event.get('body', '{}'))
+        
+        dsn = os.environ.get('DATABASE_URL')
+        conn = psycopg2.connect(dsn)
+        cursor = conn.cursor()
+        
+        for key, value in body.items():
+            cursor.execute("""
+                INSERT INTO site_settings (key, value, updated_at)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (key) 
+                DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+            """, (key, value))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'body': json.dumps({'success': True, 'message': 'Settings updated'})
         }
         
     except Exception as e:

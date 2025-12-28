@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -27,8 +27,35 @@ const AdminModal = ({ isOpen, onClose, news, raidBosses, onRefresh }: AdminModal
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
+  const [settings, setSettings] = useState({
+    support_title: '',
+    support_email: '',
+    support_phone: '',
+    support_discord: '',
+    support_telegram: '',
+    support_vk: ''
+  });
+
   const NEWS_API_URL = 'https://functions.poehali.dev/da7f7577-0e9b-4797-81f7-b1dfdf0a5538';
   const RAIDS_API_URL = 'https://functions.poehali.dev/fa87c62b-aa78-4162-8e21-2fbf82f4da95';
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch(`${NEWS_API_URL}/settings`)
+        .then(res => res.json())
+        .then(data => {
+          setSettings({
+            support_title: data.support_title || '',
+            support_email: data.support_email || '',
+            support_phone: data.support_phone || '',
+            support_discord: data.support_discord || '',
+            support_telegram: data.support_telegram || '',
+            support_vk: data.support_vk || ''
+          });
+        })
+        .catch(console.error);
+    }
+  }, [isOpen]);
 
   const handleCreateNews = async () => {
     if (!newsTitle) {
@@ -133,7 +160,7 @@ const AdminModal = ({ isOpen, onClose, news, raidBosses, onRefresh }: AdminModal
         </DialogHeader>
 
         <Tabs defaultValue="news" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="news">
               <Icon name="Newspaper" size={16} className="mr-2" />
               Новости
@@ -141,6 +168,10 @@ const AdminModal = ({ isOpen, onClose, news, raidBosses, onRefresh }: AdminModal
             <TabsTrigger value="raids">
               <Icon name="Skull" size={16} className="mr-2" />
               Рейд-боссы
+            </TabsTrigger>
+            <TabsTrigger value="settings">
+              <Icon name="Settings" size={16} className="mr-2" />
+              Настройки
             </TabsTrigger>
           </TabsList>
 
@@ -286,6 +317,118 @@ const AdminModal = ({ isOpen, onClose, news, raidBosses, onRefresh }: AdminModal
                     <p className="text-center text-muted-foreground py-8">Нет рейд-боссов</p>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Контакты поддержки</CardTitle>
+                <CardDescription>Редактировать контактную информацию в футере</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="support-title">Заголовок</Label>
+                  <Input
+                    id="support-title"
+                    placeholder="Нужна помощь?..."
+                    value={settings.support_title}
+                    onChange={(e) => setSettings({...settings, support_title: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="support-email">Email</Label>
+                  <Input
+                    id="support-email"
+                    type="email"
+                    placeholder="support@example.com"
+                    value={settings.support_email}
+                    onChange={(e) => setSettings({...settings, support_email: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="support-phone">Телефон</Label>
+                  <Input
+                    id="support-phone"
+                    placeholder="+7 (999) 123-45-67"
+                    value={settings.support_phone}
+                    onChange={(e) => setSettings({...settings, support_phone: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="support-discord">Discord</Label>
+                  <Input
+                    id="support-discord"
+                    placeholder="https://discord.gg/..."
+                    value={settings.support_discord}
+                    onChange={(e) => setSettings({...settings, support_discord: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="support-telegram">Telegram</Label>
+                  <Input
+                    id="support-telegram"
+                    placeholder="https://t.me/..."
+                    value={settings.support_telegram}
+                    onChange={(e) => setSettings({...settings, support_telegram: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="support-vk">ВКонтакте</Label>
+                  <Input
+                    id="support-vk"
+                    placeholder="https://vk.com/..."
+                    value={settings.support_vk}
+                    onChange={(e) => setSettings({...settings, support_vk: e.target.value})}
+                  />
+                </div>
+
+                <Button 
+                  onClick={async () => {
+                    setIsSubmitting(true);
+                    try {
+                      const response = await fetch(`${NEWS_API_URL}/settings`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(settings)
+                      });
+
+                      if (response.ok) {
+                        toast({
+                          title: 'Успешно!',
+                          description: 'Настройки обновлены'
+                        });
+                        onRefresh();
+                      } else {
+                        const data = await response.json();
+                        toast({
+                          title: 'Ошибка',
+                          description: data.error || 'Не удалось сохранить',
+                          variant: 'destructive'
+                        });
+                      }
+                    } catch (error) {
+                      toast({
+                        title: 'Ошибка',
+                        description: 'Проблема с соединением',
+                        variant: 'destructive'
+                      });
+                    } finally {
+                      setIsSubmitting(false);
+                    }
+                  }}
+                  disabled={isSubmitting}
+                  className="w-full"
+                >
+                  <Icon name="Save" size={16} className="mr-2" />
+                  Сохранить настройки
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
