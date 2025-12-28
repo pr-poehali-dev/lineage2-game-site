@@ -100,6 +100,10 @@ const Index = () => {
 
 
   const scrollToSection = (section: string) => {
+    if (section === 'forum') {
+      window.location.href = '/forum';
+      return;
+    }
     setActiveSection(section);
     const element = document.getElementById(section);
     element?.scrollIntoView({ behavior: 'smooth' });

@@ -3,7 +3,6 @@
 import json
 import os
 import psycopg2
-from datetime import datetime
 
 def handler(event: dict, context) -> dict:
     method = event.get('httpMethod', 'GET')
@@ -17,18 +16,20 @@ def handler(event: dict, context) -> dict:
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, X-User-Id'
             },
-            'body': ''
+            'body': '',
+            'isBase64Encoded': False
         }
     
-    path = event.get('path', '/')
+    params = event.get('queryStringParameters') or {}
+    action = params.get('action', 'categories')
     
     # Подключение к БД
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
     
     try:
-        # GET /categories - получить все категории
-        if method == 'GET' and path == '/categories':
+        # GET ?action=categories - получить все категории
+        if method == 'GET' and action == 'categories':
             cur.execute("""
                 SELECT c.id, c.name, c.description, c.sort_order,
                        COUNT(t.id) as topics_count,
@@ -55,14 +56,20 @@ def handler(event: dict, context) -> dict:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'categories': categories})
+                'body': json.dumps({'categories': categories}),
+                'isBase64Encoded': False
             }
         
-        # GET /topics?category_id=X - получить темы категории
-        if method == 'GET' and path == '/topics':
-            category_id = event.get('queryStringParameters', {}).get('category_id')
+        # GET ?action=topics&category_id=X - получить темы категории
+        if method == 'GET' and action == 'topics':
+            category_id = params.get('category_id')
             if not category_id:
-                return {'statusCode': 400, 'body': json.dumps({'error': 'category_id required'})}
+                return {
+                    'statusCode': 400,
+                    'headers': {'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'category_id required'}),
+                    'isBase64Encoded': False
+                }
             
             cur.execute("""
                 SELECT t.id, t.title, t.author_name, t.views, t.is_pinned, t.is_locked,
@@ -95,14 +102,20 @@ def handler(event: dict, context) -> dict:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'topics': topics})
+                'body': json.dumps({'topics': topics}),
+                'isBase64Encoded': False
             }
         
-        # GET /topic?id=X - получить тему с постами
-        if method == 'GET' and path == '/topic':
-            topic_id = event.get('queryStringParameters', {}).get('id')
+        # GET ?action=topic&id=X - получить тему с постами
+        if method == 'GET' and action == 'topic':
+            topic_id = params.get('id')
             if not topic_id:
-                return {'statusCode': 400, 'body': json.dumps({'error': 'id required'})}
+                return {
+                    'statusCode': 400,
+                    'headers': {'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'id required'}),
+                    'isBase64Encoded': False
+                }
             
             # Увеличиваем счетчик просмотров
             cur.execute("UPDATE forum_topics SET views = views + 1 WHERE id = %s", (topic_id,))
@@ -116,7 +129,12 @@ def handler(event: dict, context) -> dict:
             topic_row = cur.fetchone()
             
             if not topic_row:
-                return {'statusCode': 404, 'body': json.dumps({'error': 'Topic not found'})}
+                return {
+                    'statusCode': 404,
+                    'headers': {'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Topic not found'}),
+                    'isBase64Encoded': False
+                }
             
             topic = {
                 'id': topic_row[0],
@@ -154,11 +172,12 @@ def handler(event: dict, context) -> dict:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'topic': topic, 'posts': posts})
+                'body': json.dumps({'topic': topic, 'posts': posts}),
+                'isBase64Encoded': False
             }
         
-        # POST /topic - создать новую тему
-        if method == 'POST' and path == '/topic':
+        # POST ?action=create_topic - создать новую тему
+        if method == 'POST' and action == 'create_topic':
             data = json.loads(event.get('body', '{}'))
             category_id = data.get('category_id')
             title = data.get('title')
@@ -166,7 +185,12 @@ def handler(event: dict, context) -> dict:
             author_name = data.get('author_name', 'Гость')
             
             if not all([category_id, title, content]):
-                return {'statusCode': 400, 'body': json.dumps({'error': 'Missing required fields'})}
+                return {
+                    'statusCode': 400,
+                    'headers': {'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Missing required fields'}),
+                    'isBase64Encoded': False
+                }
             
             cur.execute("""
                 INSERT INTO forum_topics (category_id, title, author_name, content)
@@ -183,26 +207,42 @@ def handler(event: dict, context) -> dict:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'id': topic_id})
+                'body': json.dumps({'id': topic_id}),
+                'isBase64Encoded': False
             }
         
-        # POST /post - добавить пост в тему
-        if method == 'POST' and path == '/post':
+        # POST ?action=create_post - добавить пост в тему
+        if method == 'POST' and action == 'create_post':
             data = json.loads(event.get('body', '{}'))
             topic_id = data.get('topic_id')
             content = data.get('content')
             author_name = data.get('author_name', 'Гость')
             
             if not all([topic_id, content]):
-                return {'statusCode': 400, 'body': json.dumps({'error': 'Missing required fields'})}
+                return {
+                    'statusCode': 400,
+                    'headers': {'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Missing required fields'}),
+                    'isBase64Encoded': False
+                }
             
             # Проверяем, не заблокирована ли тема
             cur.execute("SELECT is_locked FROM forum_topics WHERE id = %s", (topic_id,))
             result = cur.fetchone()
             if not result:
-                return {'statusCode': 404, 'body': json.dumps({'error': 'Topic not found'})}
+                return {
+                    'statusCode': 404,
+                    'headers': {'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Topic not found'}),
+                    'isBase64Encoded': False
+                }
             if result[0]:
-                return {'statusCode': 403, 'body': json.dumps({'error': 'Topic is locked'})}
+                return {
+                    'statusCode': 403,
+                    'headers': {'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'error': 'Topic is locked'}),
+                    'isBase64Encoded': False
+                }
             
             cur.execute("""
                 INSERT INTO forum_posts (topic_id, author_name, content)
@@ -223,13 +263,15 @@ def handler(event: dict, context) -> dict:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'id': post_id})
+                'body': json.dumps({'id': post_id}),
+                'isBase64Encoded': False
             }
         
         return {
             'statusCode': 404,
             'headers': {'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': 'Not found'})
+            'body': json.dumps({'error': 'Not found'}),
+            'isBase64Encoded': False
         }
         
     finally:
